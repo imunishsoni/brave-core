@@ -79,6 +79,12 @@ export function getApplicableFilters(
 ) {
   let filterFilePaths: string[] = []
 
+  // updater_tests_system runs the same tests as updater_tests, but for a
+  // system-wide install.
+  if (suite === 'updater_tests_system') {
+    suite = 'updater_tests'
+  }
+
   let possibleFilters: string[] = [
     suite,
     [suite, config.targetOS].join('-'),
