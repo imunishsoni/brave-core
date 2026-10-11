@@ -1,0 +1,12 @@
+diff --git a/chrome/browser/lifetime/browser_close_manager.cc b/chrome/browser/lifetime/browser_close_manager.cc
+index cfe99807369de9710f5ec43d87fa75cbe043fc38..0a5c3fa5066966bd7eee76874914d1a0d6faf325 100644
+--- a/chrome/browser/lifetime/browser_close_manager.cc
++++ b/chrome/browser/lifetime/browser_close_manager.cc
+@@ -189,6 +189,7 @@ void BrowserCloseManager::OnReportDownloadsCancellable(bool proceed) {
+ }
+ 
+ void BrowserCloseManager::CloseBrowsers() {
++  sidebar::CloseAllWebPanels();
+ #if BUILDFLAG(ENABLE_SESSION_SERVICE)
+   // Before we close the browsers shutdown all session services. That way an
+   // exit can restore all browsers open before exiting.

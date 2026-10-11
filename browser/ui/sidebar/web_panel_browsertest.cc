@@ -26,6 +26,7 @@
 #include "brave/components/sidebar/browser/sidebar_service.h"
 #include "brave/components/sidebar/common/features.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/sessions/tab_restore_service_factory.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/side_panel/side_panel_entry_id.h"
 #include "chrome/browser/ui/side_panel/side_panel_ui.h"
@@ -34,6 +35,9 @@
 #include "chrome/browser/ui/views/side_panel/side_panel.h"
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/prefs/pref_service.h"
+#include "components/sessions/core/serialized_navigation_entry.h"
+#include "components/sessions/core/tab_restore_service.h"
+#include "components/sessions/core/tab_restore_types.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/test/browser_test.h"
 #include "ui/views/animation/ink_drop.h"
@@ -307,6 +311,40 @@ IN_PROC_BROWSER_TEST_F(WebPanelBrowserTest, WebPanelItemActiveStateTest) {
   controller()->ToggleSidebarPinning();
   ASSERT_TRUE(sidebar->IsSidebarVisible());
   EXPECT_EQ(views::InkDropState::ACTIVATED, ink_drop_state_at(index_b));
+}
+
+// The web panel is backed by a pinned tab, so it has to be closed while the
+// window is closing - before the session service and the tab restore service
+// snapshot the window - or it reappears as an ordinary pinned tab.
+IN_PROC_BROWSER_TEST_F(WebPanelBrowserTest, WebPanelClosesWithItsWindow) {
+  auto* profile = browser()->GetProfile();
+  auto* service = SidebarServiceFactory::GetForProfile(profile);
+
+  const GURL panel_url("https://brave.com/");
+  service->AddItem(SidebarItem::Create(
+      panel_url, u"title", SidebarItem::Type::kTypeWeb,
+      SidebarItem::BuiltInItemType::kNone, SidebarItem::PanelType::kWebPanel));
+  controller()->OnItemPressed(model()->GetAllSidebarItems().size() - 1);
+  ASSERT_TRUE(web_panel_controller()->HasOpenPanel());
+  ASSERT_EQ(2, tab_model()->count());
+
+  // Keep the browser process alive so the closing window gets recorded.
+  ASSERT_TRUE(CreateBrowser(profile));
+
+  auto* tab_restore_service = TabRestoreServiceFactory::GetForProfile(profile);
+  ASSERT_TRUE(tab_restore_service);
+  CloseBrowserSynchronously(browser());
+
+  ASSERT_FALSE(tab_restore_service->entries().empty());
+  const auto& entry = *tab_restore_service->entries().front();
+  ASSERT_EQ(sessions::tab_restore::WINDOW, entry.type);
+  for (const auto& tab :
+       static_cast<const sessions::tab_restore::Window&>(entry).tabs) {
+    const auto& navigation =
+        tab->navigations[tab->normalized_navigation_index()];
+    EXPECT_NE(panel_url, navigation.virtual_url())
+        << "the web panel's pinned tab is restorable";
+  }
 }
 
 }  // namespace sidebar

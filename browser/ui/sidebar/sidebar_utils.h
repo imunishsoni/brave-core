@@ -67,6 +67,9 @@ SidebarService::ShowSidebarOption GetDefaultShowSidebarOption(
 // Returns RIGHT_TOP if sidebar is on right.
 views::BubbleBorder::Arrow GetBubbleArrowForSidebar(PrefService* prefs);
 
+void CloseAllWebPanels();
+void MaybeCloseWebPanel(BrowserWindowInterface* browser);
+
 }  // namespace sidebar
 
 #endif  // BRAVE_BROWSER_UI_SIDEBAR_SIDEBAR_UTILS_H_
