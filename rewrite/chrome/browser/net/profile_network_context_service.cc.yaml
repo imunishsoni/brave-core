@@ -24,6 +24,8 @@ substitutions:
       re_pattern: '(->ConfigureDefaultNetworkContextParams\(network_context_params\);\n)'
       replace: |
         \1
+        #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
           if (profile_->IsTor()) {
             network_context_params->system_proxy_resolver.reset();
           }
+        #endif
